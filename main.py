@@ -4,7 +4,7 @@ from PIL import Image
 DELIMITER = "#####"
 
 
-# ---------- ENCRYPTION (AES-BASED) ----------
+# ---------- ENCRYPTION ----------
 
 def generate_key():
     return Fernet.generate_key()
@@ -20,18 +20,17 @@ def decrypt_message(encrypted_message, key):
     return cipher.decrypt(encrypted_message).decode()
 
 
-# ---------- STEGANOGRAPHY (LSB) ----------
+# ---------- STEGANOGRAPHY ----------
 
 def encode_image(image_path, data):
     img = Image.open(image_path)
 
-    # Ensure RGB format
-    if img.mode != 'RGB':
-        img = img.convert('RGB')
+    # 🔥 FORCE RGB (handles ALL formats)
+    img = img.convert("RGB")
 
     pixels = img.load()
 
-    # Convert encrypted data to binary + delimiter
+    # Convert data to binary + delimiter
     binary_data = ''.join(format(byte, '08b') for byte in data)
     binary_data += ''.join(format(ord(i), '08b') for i in DELIMITER)
 
@@ -40,14 +39,8 @@ def encode_image(image_path, data):
     for y in range(img.height):
         for x in range(img.width):
             if index < len(binary_data):
-                pixel = pixels[x, y]
+                r, g, b = pixels[x, y]
 
-                if isinstance(pixel, int):
-                    r = g = b = pixel
-                else:
-                    r, g, b = pixel[:3]
-
-                # Replace LSB
                 r = (r & ~1) | int(binary_data[index])
                 index += 1
 
@@ -69,8 +62,8 @@ def encode_image(image_path, data):
 def decode_image(image_path):
     img = Image.open(image_path)
 
-    if img.mode != 'RGB':
-        img = img.convert('RGB')
+    # 🔥 FORCE RGB
+    img = img.convert("RGB")
 
     pixels = img.load()
 
@@ -78,18 +71,12 @@ def decode_image(image_path):
 
     for y in range(img.height):
         for x in range(img.width):
-            pixel = pixels[x, y]
-
-            if isinstance(pixel, int):
-                r = g = b = pixel
-            else:
-                r, g, b = pixel[:3]
+            r, g, b = pixels[x, y]
 
             binary_data += str(r & 1)
             binary_data += str(g & 1)
             binary_data += str(b & 1)
 
-    # Convert binary to characters
     bytes_data = [binary_data[i:i+8] for i in range(0, len(binary_data), 8)]
     decoded = ""
 
